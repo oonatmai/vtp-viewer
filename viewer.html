@@ -69,12 +69,35 @@ document.getElementById('toggleViewMode').addEventListener('click', () => {
 });
 
 // Create file list automatically
-const modelFiles = [];
 const totalSegments = 17;
+/* For Local test
+const modelFiles = [];
 const folderPath = 'models/predicted/'; // folder where your .vtp files are
 for (let i = 1; i <= totalSegments; i++) {
     modelFiles.push(`${folderPath}Segment_${i}.vtp`);
 }
+*/
+const modelFiles = [
+  'https://drive.google.com/uc?id=1lZeiDWes_zwhZN2WWaezXUcZN4OcKcLk',
+  'https://drive.google.com/uc?id=1KLxJhTf7AISWG2ZbPo5yjQDh7AJwSZTv',
+  'https://drive.google.com/uc?id=11-_VvugerSD5F1QM95CMfby2TJAfVTu6',
+  'https://drive.google.com/uc?id=1XvyJhxuKuP3e9HTUWIJsXD0dulzEYO76',
+  'https://drive.google.com/uc?id=1-xTaAfTE0IVStRYghiX5kga2x1d1hFpr',
+  'https://drive.google.com/uc?id=1pScC4fVc0HKaeaQ7YQFMG9VllPSrfrxS',
+  'https://drive.google.com/uc?id=1EPcvO9zobvWmY4lhnaoZ2EHoQCrSAHB7',
+  'https://drive.google.com/uc?id=1SojWJ4giK1CFir6eVXKwEwOBTRRhoBj-',
+  'https://drive.google.com/uc?id=1Zb529ZyOKTPYtZLuAJ9sEf2DnxfaLo57',
+  'https://drive.google.com/uc?id=1tE68TXvVAcG16Skouit-mRYEZJG2WK-O',
+  'https://drive.google.com/uc?id=13ZuvoLaiZzAJy33MqEyoZmPWUEsJsVon',
+  'https://drive.google.com/uc?id=1gP1SK9xW62dEet4i0nMSAarPgf_DgMws',
+  'https://drive.google.com/uc?id=1R-ynsSPpg3DrAURXtHW0Tz_KiZxyGA-L',
+  'https://drive.google.com/uc?id=1vlsTQPlvgOVxXTgZaKREEzItN34gbOZ0',
+  'https://drive.google.com/uc?id=1O6cBu8nJw5SQ3qWd3ZZacmqWQhD1wXLo',
+  'https://drive.google.com/uc?id=1vIbcJXf8A7___W4uGSUuu9BiXYJEVQ_U',
+  'https://drive.google.com/uc?id=1da5VD8eIxvDDf55zlyIiYyONqZ7MgtPd'
+];
+
+
 
 // Color list (cycle through if needed)
 const modelColors = [
