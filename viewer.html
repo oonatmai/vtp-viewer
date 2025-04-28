@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VTP Viewer</title>
+  <script src="https://unpkg.com/vtk.js"></script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+    #vtk-container {
+      width: 100%;
+      height: 100%;
+    }
+    #model-controls {
+      position: absolute;
+      top: 50px;
+      left: 10px;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 10px;
+      z-index: 10;
+    }
+    #toggleViewMode {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 11;
+    }
+  </style>
+</head>
+
+<body>
+<button id="toggleViewMode">Switch View Mode</button>
+
+<div id="model-controls">
+    <button id="collapseBtn">Hide Panel</button><br><br>
+    <button id="showAllBtn">Show All</button>
+    <button id="hideAllBtn">Hide All</button>
+    <div id="opacityControl" style="margin-top:10px;">
+      <label for="opacitySlider">Opacity:</label>
+      <input type="range" id="opacitySlider" min="10" max="100" value="100">
+    </div>
+    <div id="checkboxes" style="margin-top:10px;"></div> <!-- move checkboxes inside here -->
+</div>
+
+  
+<div id="vtk-container"></div>
+
+<script>
+// VTK basic setup
+const fullScreenRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
+    rootContainer: document.getElementById('vtk-container'),
+    containerStyle: { height: '100%', width: '100%', position: 'absolute' },
+});
+const renderer = fullScreenRenderer.getRenderer();
+const renderWindow = fullScreenRenderer.getRenderWindow();
+const camera = renderer.getActiveCamera();
+
+// Switch view mode
+let isOrthographic = false;
+document.getElementById('toggleViewMode').addEventListener('click', () => {
+    isOrthographic = !isOrthographic;
+    camera.setParallelProjection(isOrthographic);
+    renderer.resetCameraClippingRange();
+    renderWindow.render();
+});
+
+// Create file list automatically
+const modelFiles = [];
+const totalSegments = 17;
+const folderPath = 'models/predicted/'; // folder where your .vtp files are
+for (let i = 1; i <= totalSegments; i++) {
+    modelFiles.push(`${folderPath}Segment_${i}.vtp`);
+}
+
+// Color list (cycle through if needed)
+const modelColors = [
+    [128, 174, 128], [241, 214, 145], [177, 122, 101], [111, 184, 210],
+    [216, 101, 79], [221, 130, 101], [144, 238, 144], [192, 104, 88],
+    [220, 245, 20], [78, 63, 0], [255, 250, 220], [230, 220, 70],
+    [200, 200, 235], [250, 250, 210], [244, 214, 49], [0, 151, 206],
+    [216, 101, 79]
+].map(color => color.map(c => c / 255));
+
+const modelNames = [
+        "Mandibular Cortical Bone",
+        "Lower Left Central Incisor",
+        "Lower Left Lateral Incisor",
+        "Lower Left Canine",
+        "Lower Left First Premolar",
+        "Lower Left Second Premolar",
+        "Lower Left First Molar",
+        "Lower Left Second Molar",
+        "Lower Left Third Molar (Wisdom Tooth)",
+        "Lower Right Central Incisor",
+        "Lower Right Lateral Incisor",
+        "Lower Right Canine",
+        "Lower Right First Premolar",
+        "Lower Right Second Premolar",
+        "Lower Right First Molar",
+        "Lower Right Second Molar",
+        "Lower Right Third Molar (Wisdom Tooth)"
+];
+
+// Actor array to track them
+const modelActors = [];
+
+// Pre-create checkboxes first
+const checkboxesContainer = document.getElementById('checkboxes');
+
+modelNames.forEach((name, index) => {
+    const label = document.createElement('label');
+    label.style.display = 'block';
+    label.style.marginBottom = '5px';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = true;
+    checkbox.dataset.index = index; // important: link checkbox to model index
+
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(' ' + name));
+    checkboxesContainer.appendChild(label);
+
+    modelActors.push({ name: name, checkbox: checkbox, actor: null }); // actor will fill later
+});
+
+// Now load models
+modelFiles.forEach((file, index) => {
+    const color = modelColors[index % modelColors.length];
+    const reader = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
+    const mapper = vtk.Rendering.Core.vtkMapper.newInstance();
+    const actor = vtk.Rendering.Core.vtkActor.newInstance();
+    actor.setMapper(mapper);
+    actor.getProperty().setColor(...color);
+
+    fetch(file)
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => {
+            reader.parseAsArrayBuffer(arrayBuffer);
+            mapper.setInputConnection(reader.getOutputPort());
+            renderer.addActor(actor);
+            modelActors[index].actor = actor; // now link the actor to the checkbox
+
+            // Checkbox event
+            modelActors[index].checkbox.addEventListener('change', () => {
+                const visible = modelActors[index].checkbox.checked;
+                actor.setVisibility(visible);
+                renderWindow.render();
+                
+                // Bonus: flash highlight
+                if (visible) flashHighlight(actor);
+            });
+
+            renderer.resetCamera();
+            renderWindow.render();
+        })
+        .catch(error => {
+            console.error(`Error loading ${file}:`, error);
+        });
+});
+
+// Show All / Hide All Buttons
+document.getElementById('showAllBtn').addEventListener('click', () => {
+    modelActors.forEach(({ actor, checkbox }) => {
+        if (actor) {
+            actor.setVisibility(true);
+            checkbox.checked = true;
+        }
+    });
+    renderWindow.render();
+});
+
+document.getElementById('hideAllBtn').addEventListener('click', () => {
+    modelActors.forEach(({ actor, checkbox }) => {
+        if (actor) {
+            actor.setVisibility(false);
+            checkbox.checked = false;
+        }
+    });
+    renderWindow.render();
+});
+
+// Bonus: Flash highlight
+function flashHighlight(actor) {
+    const originalColor = actor.getProperty().getColor();
+    actor.getProperty().setColor(1, 1, 0); // temporary yellow
+    renderWindow.render();
+    setTimeout(() => {
+        actor.getProperty().setColor(...originalColor);
+        renderWindow.render();
+    }, 300); // flash for 300ms
+}
+
+// Collapse panel button
+const collapseBtn = document.getElementById('collapseBtn');
+const modelControls = document.getElementById('model-controls');
+collapseBtn.addEventListener('click', () => {
+    const checkboxesDiv = document.getElementById('checkboxes');
+    const opacityDiv = document.getElementById('opacityControl');
+    if (checkboxesDiv.style.display === 'none') {
+        checkboxesDiv.style.display = 'block';
+        opacityDiv.style.display = 'block';
+        collapseBtn.innerText = 'Hide Panel';
+    } else {
+        checkboxesDiv.style.display = 'none';
+        opacityDiv.style.display = 'none';
+        collapseBtn.innerText = 'Show Panel';
+    }
+});
+
+// Selected actor index for opacity control
+let selectedActorIndex = 0; // Default first actor
+
+// When user clicks checkbox, set selectedActorIndex
+modelActors.forEach(({ checkbox }, index) => {
+    checkbox.addEventListener('click', () => {
+        selectedActorIndex = index;
+    });
+});
+
+// Opacity slider
+const opacitySlider = document.getElementById('opacitySlider');
+opacitySlider.addEventListener('input', () => {
+    const actor = modelActors[selectedActorIndex].actor;
+    if (actor) {
+        const value = parseInt(opacitySlider.value) / 100.0;
+        actor.getProperty().setOpacity(value);
+        renderWindow.render();
+    }
+});
+
+
+
+</script>
+</body>
+</html>
