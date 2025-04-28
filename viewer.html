@@ -41,10 +41,6 @@
         justify-content: center;
       }
       
-      #model-controls button:hover {
-        background-color: #45a049;
-      }
-      
       #opacityControl {
         display: flex;
         align-items: center;
@@ -460,6 +456,28 @@ document.addEventListener('mouseup', () => {
   isDragging = false;
 });
 
+// 📱 Touch events
+dragHandle.addEventListener('touchstart', (e) => {
+    isDragging = true;
+    const touch = e.touches[0];
+    offsetX = touch.clientX - panel.offsetLeft;
+    offsetY = touch.clientY - panel.offsetTop;
+  });
+  
+  document.addEventListener('touchmove', (e) => {
+    if (isDragging) {
+      const touch = e.touches[0];
+      panel.style.left = (touch.clientX - offsetX) + 'px';
+      panel.style.top = (touch.clientY - offsetY) + 'px';
+      e.preventDefault(); // prevent page scrolling while dragging
+    }
+  }, { passive: false });
+  
+  document.addEventListener('touchend', () => {
+    isDragging = false;
+  });
+
+// Update Opacity Slider Track
 function updateSliderTrack() {
     const percent = (opacitySlider.value - opacitySlider.min) / (opacitySlider.max - opacitySlider.min) * 100;
     opacitySlider.style.setProperty('--progress', `${percent}%`);
