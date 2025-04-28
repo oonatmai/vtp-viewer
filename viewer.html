@@ -188,6 +188,12 @@ mandibleButton.addEventListener('click', () => {
   if (actor) {
     const visible = actor.getVisibility();
     actor.setVisibility(!visible);
+    // Check if only one actor visible
+    const visibleActors = modelActors.filter(m => m.actor && m.actor.getVisibility());
+    if (!visible){
+        // focusOnActor(actor, 50);
+        renderer.resetCamera();
+    }
     renderWindow.render();
     mandibleButton.classList.toggle('active', !visible);
     selectedActorIndex = 0;
@@ -208,6 +214,14 @@ function createToothButton(label, index, parent) {
     if (actor) {
       const visible = actor.getVisibility();
       actor.setVisibility(!visible);
+      // Check if only one actor visible
+        const visibleActors = modelActors.filter(m => m.actor && m.actor.getVisibility());
+        if (visibleActors.length === 1) {
+            focusOnActor(visibleActors[0].actor, 50);
+        } else if (!visible){
+            // renderer.resetCamera();
+            focusOnActor(actor, 50);
+        }
       renderWindow.render();
       button.classList.toggle('active', !visible);
       selectedActorIndex = null;
@@ -287,6 +301,24 @@ collapseBtn.addEventListener('click', () => {
   
     collapseBtn.innerText = currentlyVisible ? 'Show Panel' : 'Hide Panel';
 });
+
+// Helper function to center the camera pivot to individual model's bounding box
+function focusOnActor(actor, move_back) {
+    const bounds = actor.getBounds(); // [xmin, xmax, ymin, ymax, zmin, zmax]
+    // renderer.resetCamera(bounds);
+    const center = [
+        (bounds[0] + bounds[1]) / 2,
+        (bounds[2] + bounds[3]) / 2,
+        (bounds[4] + bounds[5]) / 2
+    ];
+    camera.setFocalPoint(...center);
+    camera.setViewUp(0, 0, 1); // Keep standard "up" direction
+    camera.setPosition(center[0], center[1] - move_back, center[2]); // Move back a bit
+    renderer.resetCameraClippingRange();
+    renderWindow.render();
+}
+
+
 </script>
 </body>
 </html>
