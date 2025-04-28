@@ -245,12 +245,25 @@ const renderer = fullScreenRenderer.getRenderer();
 const renderWindow = fullScreenRenderer.getRenderWindow();
 const camera = renderer.getActiveCamera();
 
+// --- Smart render system ---
+let renderScheduled = false;
+function requestRender() {
+  if (!renderScheduled) {
+    renderScheduled = true;
+    requestAnimationFrame(() => {
+      renderWindow.render();
+      renderScheduled = false;
+    });
+  }
+}
+
 let isOrthographic = false;
 document.getElementById('toggleViewMode').addEventListener('click', () => {
     isOrthographic = !isOrthographic;
     camera.setParallelProjection(isOrthographic);
     renderer.resetCameraClippingRange();
-    renderWindow.render();
+    // renderWindow.render();
+    requestRender();
     document.getElementById('toggleViewMode').innerText = isOrthographic ? 'Switch to Perspective' : 'Switch to Orthographic';
 });
 
@@ -307,7 +320,9 @@ mandibleButton.addEventListener('click', () => {
         // focusOnActor(actor, 50);
         renderer.resetCamera();
     }
-    renderWindow.render();
+    // renderWindow.render();
+    mandibleButton.classList.toggle('active', actor.getVisibility());
+    requestRender();
     mandibleButton.classList.toggle('active', !visible);
     selectedActorIndex = 0;
     opacitySlider.disabled = !actor.getVisibility();
@@ -335,7 +350,9 @@ function createToothButton(label, index, parent) {
             // renderer.resetCamera();
             focusOnActor(actor, 50);
         }
-      renderWindow.render();
+      // renderWindow.render();
+      button.classList.toggle('active', actor.getVisibility());
+      requestRender();
       button.classList.toggle('active', !visible);
       selectedActorIndex = null;
       // opacitySlider.disabled = true;
@@ -368,13 +385,16 @@ Promise.all(modelFiles.map((file,index)=>{
     loadedModels++;
     document.getElementById('progressBarFill').style.width = `${(loadedModels)/modelFiles.length*100}%`;
     document.getElementById('progressText').innerText = `${loadedModels} / ${modelFiles.length} loaded`;
-    renderWindow.render();
+    //renderWindow.render();
+    requestRender();
   });
 })).then(()=>{
   modelActors.forEach(({actor})=>actor && actor.setVisibility(true));
   document.querySelectorAll('.button-tooth').forEach(b=>b.classList.add('active'));
+  mandibleButton.classList.add('active');
   renderer.resetCamera();
-  renderWindow.render();
+  //renderWindow.render();
+  requestRender();
   document.getElementById('loadingScreen').style.display = 'none';
 });
 
@@ -383,19 +403,26 @@ Promise.all(modelFiles.map((file,index)=>{
 opacitySlider.addEventListener('input',()=>{
     // Works with only Mandible model, thus index 0
     modelActors[0].actor.getProperty().setOpacity(parseInt(opacitySlider.value)/100);
-    renderWindow.render();
+    //renderWindow.render();
+    requestRender();
 });
 
 // Show/Hide All
 document.getElementById('showAllBtn').addEventListener('click',()=>{
   modelActors.forEach(({actor})=>actor&&actor.setVisibility(true));
   document.querySelectorAll('.button-tooth').forEach(b=>b.classList.add('active'));
-  renderWindow.render();
+  //renderWindow.render();
+  mandibleButton.classList.add('active');
+  opacitySlider.disabled = false;
+  requestRender();
 });
 document.getElementById('hideAllBtn').addEventListener('click',()=>{
   modelActors.forEach(({actor})=>actor&&actor.setVisibility(false));
   document.querySelectorAll('.button-tooth').forEach(b=>b.classList.remove('active'));
-  renderWindow.render();
+  //renderWindow.render();
+  mandibleButton.classList.add('active');
+  opacitySlider.disabled = true;
+  requestRender();
 });
 
 // Collpase Button
