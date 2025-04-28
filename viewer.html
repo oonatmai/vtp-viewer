@@ -21,9 +21,95 @@
       top: 50px;
       left: 10px;
       background: rgba(255, 255, 255, 0.8);
-      padding: 10px;
       z-index: 10;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
     }
+    #model-controls button {
+        font-size: 18px;
+        padding: 12px 20px;
+        line-height: 1.2;
+        text-align: center;
+        vertical-align: middle;
+        border-radius: 8px;
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: background 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      #model-controls button:hover {
+        background-color: #45a049;
+      }
+      
+      #opacityControl {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      
+      #opacityControl label {
+        font-size: 18px;
+      }
+      
+      #opacitySlider {
+        width: 300px;
+        height: 30px;
+        appearance: none;
+        border-radius: 15px;
+        background: linear-gradient(
+          90deg,
+          #2196F3 0%,
+          #2196F3 var(--progress, 100%),
+          #ddd var(--progress, 100%)
+        );
+        outline: none;
+        padding: 0;
+        margin: 0;
+      }
+      
+      /* Chrome, Safari, Edge - Track */
+      #opacitySlider::-webkit-slider-runnable-track {
+        height: 30px;
+        background: transparent; /* We already handle background in #opacitySlider itself */
+        border-radius: 15px;
+      }
+      
+      /* Chrome, Safari, Edge - Thumb */
+      #opacitySlider::-webkit-slider-thumb {
+        appearance: none;
+        width: 30px;
+        height: 30px;
+        background: #2196F3;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid #fff;
+        margin-top: 0px;
+        box-shadow: 0 0 2px rgba(0,0,0,0.5);
+      }
+      
+      /* Firefox - Track */
+      #opacitySlider::-moz-range-track {
+        height: 30px;
+        background: transparent;
+        border-radius: 15px;
+      }
+      
+      /* Firefox - Thumb */
+      #opacitySlider::-moz-range-thumb {
+        width: 30px;
+        height: 30px;
+        background: #2196F3;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid #fff;
+        box-shadow: 0 0 2px rgba(0,0,0,0.5);
+      }
+      
     #toggleViewMode {
       position: absolute;
       top: 10px;
@@ -43,7 +129,7 @@
       transition: background 0.3s;
     }
     .button-tooth.active {
-      background: #4a90e2;
+      background: #4CAF50;
       color: white;
     }
     .button-tooth:focus {
@@ -56,24 +142,55 @@
         gap: 10px;
         margin-top: 10px;
     }
-    #opacityControl {
+    .control-button {
+        font-size: 18px;
+        padding: 12px 20px;
+        line-height: 1.2;
+        text-align: center;
+        vertical-align: middle;
+        border-radius: 8px;
+        background-color: gray;
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: background 0.3s;
         display: flex;
         align-items: center;
-        gap: 8px;
-    }
-      
+        justify-content: center;
+      }
+    .control-button:hover {
+        background-color: #2196F3;
+      }
+    .control-button.active {
+        background: #2196F3;
+        color: white;
+      }
+      #dragHandle {
+        width: 100%;
+        height: 30px;
+        background-color: black; /* Darker or contrasting color */
+        cursor: move;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        user-select: none;
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+      }
   </style>
 </head>
 
 <body>
 
 <button id="toggleViewMode">Switch to Orthographic</button>
-
 <div id="model-controls">
-  <button id="collapseBtn">Hide Panel</button><br><br>
-  <button id="showAllBtn">Show All</button>
-  <button id="hideAllBtn">Hide All</button>
-
+  <div id="dragHandle">⠿ Drag Here to move this panel</div>
+  <button id="collapseBtn" class="control-button">Hide Panel</button>
+<div id="showHideButtons" style="display: flex; gap: 10px; margin-top: 10px;">
+  <button id="showAllBtn" class="control-button">Show All</button>
+  <button id="hideAllBtn" class="control-button">Hide All</button>
+</div>
   <div id="teethSelectorTop" style="
     display: grid;
     grid-template-columns: repeat(8, 1fr);
@@ -317,6 +434,41 @@ function focusOnActor(actor, move_back) {
     renderer.resetCameraClippingRange();
     renderWindow.render();
 }
+
+// Make model-controls draggable
+const panel = document.getElementById('model-controls');
+const dragHandle = document.getElementById('dragHandle');
+
+let isDragging = false;
+let offsetX = 0;
+let offsetY = 0;
+
+dragHandle.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  offsetX = e.clientX - panel.offsetLeft;
+  offsetY = e.clientY - panel.offsetTop;
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (isDragging) {
+    panel.style.left = (e.clientX - offsetX) + 'px';
+    panel.style.top = (e.clientY - offsetY) + 'px';
+  }
+});
+
+document.addEventListener('mouseup', () => {
+  isDragging = false;
+});
+
+function updateSliderTrack() {
+    const percent = (opacitySlider.value - opacitySlider.min) / (opacitySlider.max - opacitySlider.min) * 100;
+    opacitySlider.style.setProperty('--progress', `${percent}%`);
+}
+
+opacitySlider.addEventListener('input', updateSliderTrack);
+
+// Call once to initialize
+updateSliderTrack();
 
 
 </script>
