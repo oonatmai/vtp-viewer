@@ -33,7 +33,7 @@
 </head>
 
 <body>
-<button id="toggleViewMode">Switch View Mode</button>
+<button id="toggleViewMode">Switch to Orthographic</button>
 
 <div id="model-controls">
     <button id="collapseBtn">Hide Panel</button><br><br>
@@ -44,6 +44,24 @@
       <input type="range" id="opacitySlider" min="10" max="100" value="100">
     </div>
     <div id="checkboxes" style="margin-top:10px;"></div> <!-- move checkboxes inside here -->
+</div>
+
+<div id="loadingScreen" style="
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  background: rgba(255,255,255,0.8);
+  padding: 20px;
+  border-radius: 10px;
+  z-index: 100;
+">
+  <div style="font-size: 24px; margin-bottom: 10px;">Loading models, please wait...</div>
+  <div id="progressBarContainer" style="width: 300px; height: 20px; background: #eee; border-radius: 10px; overflow: hidden; margin: 0 auto;">
+    <div id="progressBarFill" style="height: 100%; width: 0%; background: linear-gradient(90deg, #4caf50, #8bc34a); transition: width 0.3s;"></div>
+  </div>  
+  <div id="progressText" style="margin-top: 10px;">0 / 17 loaded</div>
 </div>
 
   
@@ -66,6 +84,8 @@ document.getElementById('toggleViewMode').addEventListener('click', () => {
     camera.setParallelProjection(isOrthographic);
     renderer.resetCameraClippingRange();
     renderWindow.render();
+
+    document.getElementById('toggleViewMode').innerText = isOrthographic ? 'Switch to Perspective' : 'Switch to Orthographic';
 });
 
 // Create file list automatically
@@ -133,6 +153,10 @@ const modelNames = [
 // Actor array to track them
 const modelActors = [];
 
+const loadingProgress = document.getElementById('loadingProgress');
+const progressText = document.getElementById('progressText');
+let modelsLoaded = 0;
+
 // Pre-create checkboxes first
 const checkboxesContainer = document.getElementById('checkboxes');
 
@@ -154,6 +178,7 @@ modelNames.forEach((name, index) => {
 });
 
 // Now load models
+/*
 modelFiles.forEach((file, index) => {
     const color = modelColors[index % modelColors.length];
     const reader = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
@@ -187,6 +212,54 @@ modelFiles.forEach((file, index) => {
             console.error(`Error loading ${file}:`, error);
         });
 });
+*/
+const modelLoadPromises = modelFiles.map((file, index) => {
+    const color = modelColors[index % modelColors.length];
+    const reader = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
+    const mapper = vtk.Rendering.Core.vtkMapper.newInstance();
+    const actor = vtk.Rendering.Core.vtkActor.newInstance();
+    actor.setMapper(mapper);
+    actor.getProperty().setColor(...color);
+
+    return fetch(file)
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => {
+            reader.parseAsArrayBuffer(arrayBuffer);
+            mapper.setInputConnection(reader.getOutputPort());
+            renderer.addActor(actor);
+            modelActors[index].actor = actor;
+
+            // Checkbox event
+            modelActors[index].checkbox.addEventListener('change', () => {
+                const visible = modelActors[index].checkbox.checked;
+                actor.setVisibility(visible);
+                renderWindow.render();
+
+                if (visible) flashHighlight(actor);
+            });
+
+            // ✅ Update loading progress here
+            modelsLoaded++;
+            const percent = (modelsLoaded / modelFiles.length) * 100;
+            const progressFill = document.getElementById('progressBarFill');
+            progressFill.style.width = `${percent}%`;
+            progressText.textContent = `${modelsLoaded} / ${modelFiles.length} loaded`;
+        })
+        .catch(error => {
+            console.error(`Error loading ${file}:`, error);
+        });
+});
+
+// Wait until all models loaded
+Promise.all(modelLoadPromises).then(() => {
+    console.log('✅ All models loaded!');
+    renderer.resetCamera();
+    renderWindow.render();
+
+    // Hide loading screen
+    document.getElementById('loadingScreen').style.display = 'none';
+});
+
 
 // Show All / Hide All Buttons
 document.getElementById('showAllBtn').addEventListener('click', () => {
@@ -257,8 +330,6 @@ opacitySlider.addEventListener('input', () => {
         renderWindow.render();
     }
 });
-
-
 
 </script>
 </body>
