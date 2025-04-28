@@ -10,6 +10,7 @@
       padding: 0;
       height: 100%;
       overflow: hidden;
+      background: #404258;
     }
     #vtk-container {
       width: 100%;
@@ -29,21 +30,77 @@
       left: 10px;
       z-index: 11;
     }
+    .button-tooth {
+      width: 50px;
+      height: 50px;
+      background: #ccc;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      font-size: 16px;
+      color: black;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .button-tooth.active {
+      background: #4a90e2;
+      color: white;
+    }
+    .button-tooth:focus {
+      outline: none;
+    }
+    #mandibleSelector {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    #opacityControl {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+      
   </style>
 </head>
 
 <body>
+
 <button id="toggleViewMode">Switch to Orthographic</button>
 
 <div id="model-controls">
-    <button id="collapseBtn">Hide Panel</button><br><br>
-    <button id="showAllBtn">Show All</button>
-    <button id="hideAllBtn">Hide All</button>
-    <div id="opacityControl" style="margin-top:10px;">
+  <button id="collapseBtn">Hide Panel</button><br><br>
+  <button id="showAllBtn">Show All</button>
+  <button id="hideAllBtn">Hide All</button>
+
+  <div id="teethSelectorTop" style="
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+    margin-bottom: 10px;">
+  </div>
+
+  <div id="teethSelectorBottom" style="
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;">
+  </div>
+
+  <div id="mandibleSelector" style="
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;">
+    <button id="mandibleButton" class="button-tooth" style="width: 120px;">Mandible</button>
+    <div id="opacityControl">
       <label for="opacitySlider">Opacity:</label>
       <input type="range" id="opacitySlider" min="10" max="100" value="100">
     </div>
-    <div id="checkboxes" style="margin-top:10px;"></div> <!-- move checkboxes inside here -->
+  </div>
 </div>
 
 <div id="loadingScreen" style="
@@ -55,20 +112,18 @@
   background: rgba(255,255,255,0.8);
   padding: 20px;
   border-radius: 10px;
-  z-index: 100;
-">
+  z-index: 100;">
   <div style="font-size: 24px; margin-bottom: 10px;">Loading models, please wait...</div>
   <div id="progressBarContainer" style="width: 300px; height: 20px; background: #eee; border-radius: 10px; overflow: hidden; margin: 0 auto;">
     <div id="progressBarFill" style="height: 100%; width: 0%; background: linear-gradient(90deg, #4caf50, #8bc34a); transition: width 0.3s;"></div>
-  </div>  
+  </div>
   <div id="progressText" style="margin-top: 10px;">0 / 17 loaded</div>
 </div>
 
-  
 <div id="vtk-container"></div>
 
 <script>
-// VTK basic setup
+// VTK Setup
 const fullScreenRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
     rootContainer: document.getElementById('vtk-container'),
     containerStyle: { height: '100%', width: '100%', position: 'absolute' },
@@ -77,260 +132,161 @@ const renderer = fullScreenRenderer.getRenderer();
 const renderWindow = fullScreenRenderer.getRenderWindow();
 const camera = renderer.getActiveCamera();
 
-// Switch view mode
 let isOrthographic = false;
 document.getElementById('toggleViewMode').addEventListener('click', () => {
     isOrthographic = !isOrthographic;
     camera.setParallelProjection(isOrthographic);
     renderer.resetCameraClippingRange();
     renderWindow.render();
-
     document.getElementById('toggleViewMode').innerText = isOrthographic ? 'Switch to Perspective' : 'Switch to Orthographic';
 });
 
-// Create file list automatically
-const totalSegments = 17;
-/* For Local test
-const modelFiles = [];
-const folderPath = 'models/predicted/'; // folder where your .vtp files are
-for (let i = 1; i <= totalSegments; i++) {
-    modelFiles.push(`${folderPath}Segment_${i}.vtp`);
-}
-*/
+// Model Files
 const modelFiles = [
-    "https://dl.dropboxusercontent.com/scl/fi/48kbvtoddojkrwesym611/Segment_1.vtp?rlkey=a0icyk6yqjt6ip5d7y5zorp9c&st=061jh94a&dl=0",
-    "https://dl.dropboxusercontent.com/scl/fi/6x84ldggws22wfdtkuox5/Segment_2.vtp?rlkey=8ht91eflqqlakg4do2eremux3&st=u1llwdm9&dl=0",
-    "https://dl.dropboxusercontent.com/scl/fi/whcbwbpspdkv5ql9akyyx/Segment_3.vtp?rlkey=353sw5qi8yukk2iz60t3f3bej&st=hs3yz19d&dl=0",
-    "https://dl.dropboxusercontent.com/scl/fi/1ukn14i284v18tpn6thpz/Segment_4.vtp?rlkey=qcme6thjj7db9gcs7ipxqdwv0&st=bf0zhp7c&dl=0",
-    "https://dl.dropboxusercontent.com/scl/fi/zjnvd86ca90r7vxuisjpn/Segment_5.vtp?rlkey=o43p11z23xro1u44jufo4pxbo&st=8vvlpa28&dl=0",
-    "https://dl.dropboxusercontent.com/scl/fi/adpc1forsg9m0ddxrs853/Segment_6.vtp?rlkey=d5txn6qvva39joxpq3bxcrg1k&st=qwyxp1yj&dl=0",
-    "https://dl.dropboxusercontent.com/scl/fi/rb5ns5g3fd83wsq10tlnz/Segment_7.vtp?rlkey=7dlszc71efxf646qxbv849sq4&st=vhw17trk&dl=0",
-    "https://dl.dropboxusercontent.com/scl/fi/9uoz268nawtk7buj6py3h/Segment_8.vtp?rlkey=7fgb7oi3ms4zeayr398mw1cei&st=edogr7df&dl=0",
-    "https://dl.dropboxusercontent.com/scl/fi/nc2nb2bxu3ibkixj8vpr1/Segment_9.vtp?rlkey=g4sc4iqc1xpliwpis13sfcbyd&st=wid7wcj1&dl=0",
-    "https://dl.dropboxusercontent.com/scl/fi/oea7wq6ono6l51gbo5dq9/Segment_10.vtp?rlkey=5gao5nipgry7i69w1ykk2ztlf&st=sbaf0iw3&dl=0",
-    "https://dl.dropboxusercontent.com/scl/fi/ko09cyjgiui31v0tnmp6a/Segment_11.vtp?rlkey=33gjhmcdhp3zmrrj0it8v926h&st=cwq2ekqb&dl=0",
-    "https://dl.dropboxusercontent.com/scl/fi/yy7bqy8y3ikyo9hppmy6e/Segment_12.vtp?rlkey=g425li5d28sc25fupoetw05yg&st=38wqeppl&dl=0",
-    "https://dl.dropboxusercontent.com/scl/fi/fq7oy5wf1eqj7bqmaomg7/Segment_13.vtp?rlkey=8m6zrcquo280sqnel726twspb&st=b8u92blq&dl=0",
-    "https://dl.dropboxusercontent.com/scl/fi/3okub0k9vv8rsj7onn0um/Segment_14.vtp?rlkey=yro4ugi1prlwjadqa6zai2ebn&st=658wxwvh&dl=0",
-    "https://dl.dropboxusercontent.com/scl/fi/w6sa1qe270gn312rf8cvm/Segment_15.vtp?rlkey=obzg2bo8x8zdkoe3mntim64zk&st=6xin07rp&dl=0",
-    "https://dl.dropboxusercontent.com/scl/fi/o4aiy3f4dheac2e3mvemz/Segment_16.vtp?rlkey=ywipn3jw1ys70nkn4s33kzlwg&st=lzyjmjln&dl=0",
-    "https://dl.dropboxusercontent.com/scl/fi/trfhf9b7pwbmrw6h5s3qz/Segment_17.vtp?rlkey=c0gpvagzgcx9xh9npq7atjyjw&st=jfnjkwgi&dl=0"
+  "https://dl.dropboxusercontent.com/scl/fi/48kbvtoddojkrwesym611/Segment_1.vtp?rlkey=a0icyk6yqjt6ip5d7y5zorp9c&st=061jh94a&dl=0",
+  "https://dl.dropboxusercontent.com/scl/fi/6x84ldggws22wfdtkuox5/Segment_2.vtp?rlkey=8ht91eflqqlakg4do2eremux3&st=u1llwdm9&dl=0",
+  "https://dl.dropboxusercontent.com/scl/fi/whcbwbpspdkv5ql9akyyx/Segment_3.vtp?rlkey=353sw5qi8yukk2iz60t3f3bej&st=hs3yz19d&dl=0",
+  "https://dl.dropboxusercontent.com/scl/fi/1ukn14i284v18tpn6thpz/Segment_4.vtp?rlkey=qcme6thjj7db9gcs7ipxqdwv0&st=bf0zhp7c&dl=0",
+  "https://dl.dropboxusercontent.com/scl/fi/zjnvd86ca90r7vxuisjpn/Segment_5.vtp?rlkey=o43p11z23xro1u44jufo4pxbo&st=8vvlpa28&dl=0",
+  "https://dl.dropboxusercontent.com/scl/fi/adpc1forsg9m0ddxrs853/Segment_6.vtp?rlkey=d5txn6qvva39joxpq3bxcrg1k&st=qwyxp1yj&dl=0",
+  "https://dl.dropboxusercontent.com/scl/fi/rb5ns5g3fd83wsq10tlnz/Segment_7.vtp?rlkey=7dlszc71efxf646qxbv849sq4&st=vhw17trk&dl=0",
+  "https://dl.dropboxusercontent.com/scl/fi/9uoz268nawtk7buj6py3h/Segment_8.vtp?rlkey=7fgb7oi3ms4zeayr398mw1cei&st=edogr7df&dl=0",
+  "https://dl.dropboxusercontent.com/scl/fi/nc2nb2bxu3ibkixj8vpr1/Segment_9.vtp?rlkey=g4sc4iqc1xpliwpis13sfcbyd&st=wid7wcj1&dl=0",
+  "https://dl.dropboxusercontent.com/scl/fi/oea7wq6ono6l51gbo5dq9/Segment_10.vtp?rlkey=5gao5nipgry7i69w1ykk2ztlf&st=sbaf0iw3&dl=0",
+  "https://dl.dropboxusercontent.com/scl/fi/ko09cyjgiui31v0tnmp6a/Segment_11.vtp?rlkey=33gjhmcdhp3zmrrj0it8v926h&st=cwq2ekqb&dl=0",
+  "https://dl.dropboxusercontent.com/scl/fi/yy7bqy8y3ikyo9hppmy6e/Segment_12.vtp?rlkey=g425li5d28sc25fupoetw05yg&st=38wqeppl&dl=0",
+  "https://dl.dropboxusercontent.com/scl/fi/fq7oy5wf1eqj7bqmaomg7/Segment_13.vtp?rlkey=8m6zrcquo280sqnel726twspb&st=b8u92blq&dl=0",
+  "https://dl.dropboxusercontent.com/scl/fi/3okub0k9vv8rsj7onn0um/Segment_14.vtp?rlkey=yro4ugi1prlwjadqa6zai2ebn&st=658wxwvh&dl=0",
+  "https://dl.dropboxusercontent.com/scl/fi/w6sa1qe270gn312rf8cvm/Segment_15.vtp?rlkey=obzg2bo8x8zdkoe3mntim64zk&st=6xin07rp&dl=0",
+  "https://dl.dropboxusercontent.com/scl/fi/o4aiy3f4dheac2e3mvemz/Segment_16.vtp?rlkey=ywipn3jw1ys70nkn4s33kzlwg&st=lzyjmjln&dl=0",
+  "https://dl.dropboxusercontent.com/scl/fi/trfhf9b7pwbmrw6h5s3qz/Segment_17.vtp?rlkey=c0gpvagzgcx9xh9npq7atjyjw&st=jfnjkwgi&dl=0"
 ];
 
-
-
-
-
-// Color list (cycle through if needed)
+// Colors
 const modelColors = [
-    [128, 174, 128], [241, 214, 145], [177, 122, 101], [111, 184, 210],
-    [216, 101, 79], [221, 130, 101], [144, 238, 144], [192, 104, 88],
-    [220, 245, 20], [78, 63, 0], [255, 250, 220], [230, 220, 70],
-    [200, 200, 235], [250, 250, 210], [244, 214, 49], [0, 151, 206],
-    [216, 101, 79]
-].map(color => color.map(c => c / 255));
+  [128, 174, 128], [241, 214, 145], [177, 122, 101], [111, 184, 210],
+  [216, 101, 79], [221, 130, 101], [144, 238, 144], [192, 104, 88],
+  [220, 245, 20], [78, 63, 0], [255, 250, 220], [230, 220, 70],
+  [200, 200, 235], [250, 250, 210], [244, 214, 49], [0, 151, 206],
+  [216, 101, 79]
+].map(c => c.map(v => v/255));
 
-const modelNames = [
-        "Mandibular Cortical Bone",
-        "Lower Left Central Incisor",
-        "Lower Left Lateral Incisor",
-        "Lower Left Canine",
-        "Lower Left First Premolar",
-        "Lower Left Second Premolar",
-        "Lower Left First Molar",
-        "Lower Left Second Molar",
-        "Lower Left Third Molar (Wisdom Tooth)",
-        "Lower Right Central Incisor",
-        "Lower Right Lateral Incisor",
-        "Lower Right Canine",
-        "Lower Right First Premolar",
-        "Lower Right Second Premolar",
-        "Lower Right First Molar",
-        "Lower Right Second Molar",
-        "Lower Right Third Molar (Wisdom Tooth)"
-];
+// Actors
+const modelActors = new Array(18).fill(null).map(() => ({ actor: null }));
 
-// Actor array to track them
-const modelActors = [];
+// UI
+const selectorTop = document.getElementById('teethSelectorTop');
+const selectorBottom = document.getElementById('teethSelectorBottom');
+const mandibleButton = document.getElementById('mandibleButton');
+const opacitySlider = document.getElementById('opacitySlider');
+const collapseBtn = document.getElementById('collapseBtn')
+let selectedActorIndex = null;
 
-const loadingProgress = document.getElementById('loadingProgress');
-const progressText = document.getElementById('progressText');
-let modelsLoaded = 0;
-
-// Pre-create checkboxes first
-const checkboxesContainer = document.getElementById('checkboxes');
-
-modelNames.forEach((name, index) => {
-    const label = document.createElement('label');
-    label.style.display = 'block';
-    label.style.marginBottom = '5px';
-
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.checked = true;
-    checkbox.dataset.index = index; // important: link checkbox to model index
-
-    label.appendChild(checkbox);
-    label.appendChild(document.createTextNode(' ' + name));
-    checkboxesContainer.appendChild(label);
-
-    modelActors.push({ name: name, checkbox: checkbox, actor: null }); // actor will fill later
-});
-
-// Now load models
-/*
-modelFiles.forEach((file, index) => {
-    const color = modelColors[index % modelColors.length];
-    const reader = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
-    const mapper = vtk.Rendering.Core.vtkMapper.newInstance();
-    const actor = vtk.Rendering.Core.vtkActor.newInstance();
-    actor.setMapper(mapper);
-    actor.getProperty().setColor(...color);
-
-    fetch(file)
-        .then(response => response.arrayBuffer())
-        .then(arrayBuffer => {
-            reader.parseAsArrayBuffer(arrayBuffer);
-            mapper.setInputConnection(reader.getOutputPort());
-            renderer.addActor(actor);
-            modelActors[index].actor = actor; // now link the actor to the checkbox
-
-            // Checkbox event
-            modelActors[index].checkbox.addEventListener('change', () => {
-                const visible = modelActors[index].checkbox.checked;
-                actor.setVisibility(visible);
-                renderWindow.render();
-                
-                // Bonus: flash highlight
-                if (visible) flashHighlight(actor);
-            });
-
-            renderer.resetCamera();
-            renderWindow.render();
-        })
-        .catch(error => {
-            console.error(`Error loading ${file}:`, error);
-        });
-});
-*/
-const modelLoadPromises = modelFiles.map((file, index) => {
-    const color = modelColors[index % modelColors.length];
-    const reader = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
-    const mapper = vtk.Rendering.Core.vtkMapper.newInstance();
-    const actor = vtk.Rendering.Core.vtkActor.newInstance();
-    actor.setMapper(mapper);
-    actor.getProperty().setColor(...color);
-
-    return fetch(file)
-        .then(response => response.arrayBuffer())
-        .then(arrayBuffer => {
-            reader.parseAsArrayBuffer(arrayBuffer);
-            mapper.setInputConnection(reader.getOutputPort());
-            renderer.addActor(actor);
-            modelActors[index].actor = actor;
-
-            // Checkbox event
-            modelActors[index].checkbox.addEventListener('change', () => {
-                const visible = modelActors[index].checkbox.checked;
-                actor.setVisibility(visible);
-                renderWindow.render();
-
-                if (visible) flashHighlight(actor);
-            });
-
-            // ✅ Update loading progress here
-            modelsLoaded++;
-            const percent = (modelsLoaded / modelFiles.length) * 100;
-            const progressFill = document.getElementById('progressBarFill');
-            progressFill.style.width = `${percent}%`;
-            progressText.textContent = `${modelsLoaded} / ${modelFiles.length} loaded`;
-        })
-        .catch(error => {
-            console.error(`Error loading ${file}:`, error);
-        });
-});
-
-// Wait until all models loaded
-Promise.all(modelLoadPromises).then(() => {
-    console.log('✅ All models loaded!');
-    renderer.resetCamera();
+// Mandible Button
+mandibleButton.addEventListener('click', () => {
+  const actor = modelActors[0].actor;
+  if (actor) {
+    const visible = actor.getVisibility();
+    actor.setVisibility(!visible);
     renderWindow.render();
-
-    // Hide loading screen
-    document.getElementById('loadingScreen').style.display = 'none';
+    mandibleButton.classList.toggle('active', !visible);
+    selectedActorIndex = 0;
+    opacitySlider.disabled = !actor.getVisibility();
+  }
 });
 
+// Create Teeth Buttons
+function createToothButton(label, index, parent) {
+  const button = document.createElement('button');
+  button.className = 'button-tooth';
+  button.innerText = label;
+  button.dataset.index = index;
+  parent.appendChild(button);
 
-// Show All / Hide All Buttons
-document.getElementById('showAllBtn').addEventListener('click', () => {
-    modelActors.forEach(({ actor, checkbox }) => {
-        if (actor) {
-            actor.setVisibility(true);
-            checkbox.checked = true;
-        }
-    });
-    renderWindow.render();
-});
-
-document.getElementById('hideAllBtn').addEventListener('click', () => {
-    modelActors.forEach(({ actor, checkbox }) => {
-        if (actor) {
-            actor.setVisibility(false);
-            checkbox.checked = false;
-        }
-    });
-    renderWindow.render();
-});
-
-// Bonus: Flash highlight
-function flashHighlight(actor) {
-    const originalColor = actor.getProperty().getColor();
-    actor.getProperty().setColor(1, 1, 0); // temporary yellow
-    renderWindow.render();
-    setTimeout(() => {
-        actor.getProperty().setColor(...originalColor);
-        renderWindow.render();
-    }, 300); // flash for 300ms
+  button.addEventListener('click', () => {
+    const actor = modelActors[index].actor;
+    if (actor) {
+      const visible = actor.getVisibility();
+      actor.setVisibility(!visible);
+      renderWindow.render();
+      button.classList.toggle('active', !visible);
+      selectedActorIndex = null;
+      // opacitySlider.disabled = true;
+    }
+  });
 }
 
-// Collapse panel button
-const collapseBtn = document.getElementById('collapseBtn');
-const modelControls = document.getElementById('model-controls');
+[
+  ["48",16],["47",15],["46",14],["45",13],["44",12],["43",11],["42",10],["41",9]
+].forEach(([label,index]) => createToothButton(label,index,selectorTop));
+[
+  ["31",1],["32",2],["33",3],["34",4],["35",5],["36",6],["37",7],["38",8]
+].forEach(([label,index]) => createToothButton(label,index,selectorBottom));
+
+// Load Models
+loadedModels = 0;
+Promise.all(modelFiles.map((file,index)=>{
+  const reader = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
+  const mapper = vtk.Rendering.Core.vtkMapper.newInstance();
+  const actor = vtk.Rendering.Core.vtkActor.newInstance();
+  actor.setMapper(mapper);
+  actor.getProperty().setColor(...modelColors[index%modelColors.length]);
+
+  return fetch(file).then(r=>r.arrayBuffer()).then(b=>{
+    reader.parseAsArrayBuffer(b);
+    mapper.setInputConnection(reader.getOutputPort());
+    renderer.addActor(actor);
+    modelActors[index].actor = actor;
+
+    loadedModels++;
+    document.getElementById('progressBarFill').style.width = `${(loadedModels)/modelFiles.length*100}%`;
+    document.getElementById('progressText').innerText = `${loadedModels} / ${modelFiles.length} loaded`;
+    renderWindow.render();
+  });
+})).then(()=>{
+  modelActors.forEach(({actor})=>actor && actor.setVisibility(true));
+  document.querySelectorAll('.button-tooth').forEach(b=>b.classList.add('active'));
+  renderer.resetCamera();
+  renderWindow.render();
+  document.getElementById('loadingScreen').style.display = 'none';
+});
+
+// Opacity
+// opacitySlider.disabled = true;
+opacitySlider.addEventListener('input',()=>{
+    // Works with only Mandible model, thus index 0
+    modelActors[0].actor.getProperty().setOpacity(parseInt(opacitySlider.value)/100);
+    renderWindow.render();
+});
+
+// Show/Hide All
+document.getElementById('showAllBtn').addEventListener('click',()=>{
+  modelActors.forEach(({actor})=>actor&&actor.setVisibility(true));
+  document.querySelectorAll('.button-tooth').forEach(b=>b.classList.add('active'));
+  renderWindow.render();
+});
+document.getElementById('hideAllBtn').addEventListener('click',()=>{
+  modelActors.forEach(({actor})=>actor&&actor.setVisibility(false));
+  document.querySelectorAll('.button-tooth').forEach(b=>b.classList.remove('active'));
+  renderWindow.render();
+});
+
+// Collpase Button
 collapseBtn.addEventListener('click', () => {
-    const checkboxesDiv = document.getElementById('checkboxes');
-    const opacityDiv = document.getElementById('opacityControl');
-    if (checkboxesDiv.style.display === 'none') {
-        checkboxesDiv.style.display = 'block';
-        opacityDiv.style.display = 'block';
-        collapseBtn.innerText = 'Hide Panel';
-    } else {
-        checkboxesDiv.style.display = 'none';
-        opacityDiv.style.display = 'none';
-        collapseBtn.innerText = 'Show Panel';
-    }
+    const teethTop = document.getElementById('teethSelectorTop');
+    const teethBottom = document.getElementById('teethSelectorBottom');
+    const mandibleArea = document.getElementById('mandibleSelector');
+    const opacityArea = document.getElementById('opacityControl');
+  
+    const currentlyVisible = teethTop.style.display !== 'none';
+  
+    teethTop.style.display = currentlyVisible ? 'none' : 'grid';
+    teethBottom.style.display = currentlyVisible ? 'none' : 'grid';
+    mandibleArea.style.display = currentlyVisible ? 'none' : 'flex'; // flex, not grid
+    opacityArea.style.display = currentlyVisible ? 'none' : 'flex';   // flex, not grid
+  
+    collapseBtn.innerText = currentlyVisible ? 'Show Panel' : 'Hide Panel';
 });
-
-// Selected actor index for opacity control
-let selectedActorIndex = 0; // Default first actor
-
-// When user clicks checkbox, set selectedActorIndex
-modelActors.forEach(({ checkbox }, index) => {
-    checkbox.addEventListener('click', () => {
-        selectedActorIndex = index;
-    });
-});
-
-// Opacity slider
-const opacitySlider = document.getElementById('opacitySlider');
-opacitySlider.addEventListener('input', () => {
-    const actor = modelActors[selectedActorIndex].actor;
-    if (actor) {
-        const value = parseInt(opacitySlider.value) / 100.0;
-        actor.getProperty().setOpacity(value);
-        renderWindow.render();
-    }
-});
-
 </script>
 </body>
 </html>
