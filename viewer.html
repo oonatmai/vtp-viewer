@@ -4,233 +4,382 @@
   <meta charset="UTF-8">
   <title>VTP Viewer</title>
   <script src="https://unpkg.com/vtk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    * {
+      box-sizing: border-box;
+    }
+    
     body, html {
       margin: 0;
       padding: 0;
       height: 100%;
       overflow: hidden;
-      background: #404258;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
+    
     #vtk-container {
       width: 100%;
       height: 100%;
     }
+    
+    /* Modern floating control panel */
     #model-controls {
       position: absolute;
-      top: 50px;
-      left: 10px;
-      background: rgba(255, 255, 255, 0.8);
+      top: 20px;
+      left: 20px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       z-index: 10;
-      border-top-left-radius: 10px;
-      border-top-right-radius: 10px;
+      min-width: 320px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    #model-controls button {
-        font-size: 18px;
-        padding: 12px 20px;
-        line-height: 1.2;
-        text-align: center;
-        vertical-align: middle;
-        border-radius: 8px;
-        color: white;
-        border: none;
-        cursor: pointer;
-        transition: background 0.3s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      
-      #opacityControl {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-top: 10px;
-      }
-      
-      #opacityControl label {
-        font-size: 18px;
-      }
-      
-      #opacitySlider {
-        width: 300px;
-        height: 30px;
-        appearance: none;
-        border-radius: 15px;
-        background: linear-gradient(
-          90deg,
-          #2196F3 0%,
-          #2196F3 var(--progress, 100%),
-          #ddd var(--progress, 100%)
-        );
-        outline: none;
-        padding: 0;
-        margin: 0;
-      }
-      
-      /* Chrome, Safari, Edge - Track */
-      #opacitySlider::-webkit-slider-runnable-track {
-        height: 30px;
-        background: transparent; /* We already handle background in #opacitySlider itself */
-        border-radius: 15px;
-      }
-      
-      /* Chrome, Safari, Edge - Thumb */
-      #opacitySlider::-webkit-slider-thumb {
-        appearance: none;
-        width: 30px;
-        height: 30px;
-        background: #2196F3;
-        border-radius: 50%;
-        cursor: pointer;
-        border: 2px solid #fff;
-        margin-top: 0px;
-        box-shadow: 0 0 2px rgba(0,0,0,0.5);
-      }
-      
-      /* Firefox - Track */
-      #opacitySlider::-moz-range-track {
-        height: 30px;
-        background: transparent;
-        border-radius: 15px;
-      }
-      
-      /* Firefox - Thumb */
-      #opacitySlider::-moz-range-thumb {
-        width: 30px;
-        height: 30px;
-        background: #2196F3;
-        border-radius: 50%;
-        cursor: pointer;
-        border: 2px solid #fff;
-        box-shadow: 0 0 2px rgba(0,0,0,0.5);
-      }
-      
+    
+    #dragHandle {
+      width: 100%;
+      height: 48px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      cursor: move;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      user-select: none;
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
+      font-weight: 500;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+    }
+    
+    .panel-content {
+      padding: 20px;
+    }
+    
+    /*  buttons */
+    .modern-btn {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-weight: 500;
+      font-size: 14px;
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    
+    .modern-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+    
+    .modern-btn:active {
+      transform: translateY(0);
+    }
+    
+    .modern-btn-secondary {
+      background: rgba(102, 126, 234, 0.1);
+      color: #667eea;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+    }
+    
+    .modern-btn-secondary:hover {
+      background: rgba(102, 126, 234, 0.15);
+      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+    }
+    
+    /* Control sections */
+    .control-section {
+      margin-bottom: 24px;
+    }
+    
+    .control-section:last-child {
+      margin-bottom: 0;
+    }
+    
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    /* tooth buttons */
+    .tooth-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .button-tooth {
+      width: 36px;
+      height: 36px;
+      background: rgba(148, 163, 184, 0.1);
+      border: 2px solid rgba(148, 163, 184, 0.2);
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 12px;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .button-tooth:hover {
+      background: rgba(102, 126, 234, 0.1);
+      border-color: rgba(102, 126, 234, 0.3);
+      color: #667eea;
+      transform: scale(1.05);
+    }
+    
+    .button-tooth.active {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-color: #667eea;
+      color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    
+    /* slider */
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    
+    .slider-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #475569;
+      min-width: 60px;
+    }
+    
+    .modern-slider {
+      flex: 1;
+      height: 6px;
+      background: rgba(148, 163, 184, 0.2);
+      border-radius: 3px;
+      outline: none;
+      appearance: none;
+      cursor: pointer;
+      position: relative;
+    }
+    
+    .modern-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 50%;
+      cursor: pointer;
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+      transition: all 0.2s ease;
+    }
+    
+    .modern-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+    }
+    
+    .modern-slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 50%;
+      cursor: pointer;
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+    
+    /* Top floating button */
     #toggleViewMode {
       position: absolute;
-      top: 10px;
-      left: 10px;
+      top: 20px;
+      right: 20px;
       z-index: 11;
-    }
-    .button-tooth {
-      width: 50px;
-      height: 50px;
-      background: #ccc;
-      border: none;
-      border-radius: 10px;
-      font-weight: bold;
-      font-size: 16px;
-      color: black;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      color: #667eea;
+      font-weight: 500;
+      font-size: 14px;
+      padding: 12px 20px;
       cursor: pointer;
-      transition: background 0.3s;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
-    .button-tooth.active {
-      background: #4CAF50;
+    
+    #toggleViewMode:hover {
+      background: rgba(255, 255, 255, 1);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Loading screen */
+    #loadingScreen {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      padding: 40px;
+      border-radius: 20px;
+      z-index: 100;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+    
+    .loading-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 20px;
+    }
+    
+    .progress-container {
+      width: 300px;
+      height: 8px;
+      background: rgba(148, 163, 184, 0.2);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 0 auto 16px;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      transition: width 0.3s ease;
+      border-radius: 4px;
+    }
+    
+    .progress-text {
+      font-size: 14px;
+      color: #64748b;
+      font-weight: 500;
+    }
+    
+    /* Mandible special button */
+    .mandible-btn {
+      background: rgba(102, 126, 234, 0.1);
+      border: 2px solid rgba(102, 126, 234, 0.2);
+      border-radius: 12px;
+      color: #667eea;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-width: 120px;
+    }
+    
+    .mandible-btn:hover {
+      background: rgba(102, 126, 234, 0.15);
+      border-color: rgba(102, 126, 234, 0.3);
+      transform: translateY(-1px);
+    }
+    
+    .mandible-btn.active {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-color: #667eea;
       color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
     }
-    .button-tooth:focus {
-      outline: none;
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+      #model-controls {
+        left: 10px;
+        right: 10px;
+        top: 10px;
+        min-width: auto;
+      }
+      
+      #toggleViewMode {
+        right: 10px;
+        top: 10px;
+        padding: 10px 16px;
+        font-size: 12px;
+      }
+      
+      .tooth-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
     }
-    #mandibleSelector {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 10px;
-    }
-    .control-button {
-        font-size: 18px;
-        padding: 12px 20px;
-        line-height: 1.2;
-        text-align: center;
-        vertical-align: middle;
-        border-radius: 8px;
-        background-color: gray;
-        color: white;
-        border: none;
-        cursor: pointer;
-        transition: background 0.3s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-    .control-button:hover {
-        background-color: #2196F3;
-      }
-    .control-button.active {
-        background: #2196F3;
-        color: white;
-      }
-      #dragHandle {
-        width: 100%;
-        height: 30px;
-        background-color: black; /* Darker or contrasting color */
-        cursor: move;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        user-select: none;
-        border-top-left-radius: 10px;
-        border-top-right-radius: 10px;
-      }
   </style>
 </head>
 
 <body>
 
 <button id="toggleViewMode">Switch to Orthographic</button>
+
 <div id="model-controls">
-  <div id="dragHandle">⠿ Drag Here to move this panel</div>
-  <button id="collapseBtn" class="control-button">Hide Panel</button>
-<div id="showHideButtons" style="display: flex; gap: 10px; margin-top: 10px;">
-  <button id="showAllBtn" class="control-button">Show All</button>
-  <button id="hideAllBtn" class="control-button">Hide All</button>
-</div>
-  <div id="teethSelectorTop" style="
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 8px;
-    margin-top: 10px;
-    margin-bottom: 10px;">
-  </div>
+  <div id="dragHandle">⋮⋮ Drag to Move Panel</div>
+  <div class="panel-content">
+    <div class="control-section">
+      <div class="button-group">
+        <button id="collapseBtn" class="modern-btn">Toggle Panel</button>
+        <button id="toggleAllBtn" class="modern-btn">Hide All</button>
+      </div>
+    </div>
 
-  <div id="teethSelectorBottom" style="
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 8px;
-    margin-bottom: 10px;">
-  </div>
+    <div id="teethControls">
+      <div class="control-section">
+        <div class="section-title">Right Lower Teeth</div>
+        <div id="teethSelectorTop" class="tooth-grid"></div>
+      </div>
 
-  <div id="mandibleSelector" style="
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 10px;
-    flex-wrap: wrap;">
-    <button id="mandibleButton" class="button-tooth" style="width: 120px;">Mandible</button>
-    <div id="opacityControl">
-      <label for="opacitySlider">Opacity:</label>
-      <input type="range" id="opacitySlider" min="10" max="100" value="100">
+      <div class="control-section">
+        <div class="section-title">Left Lower Teeth</div>
+        <div id="teethSelectorBottom" class="tooth-grid"></div>
+      </div>
+
+      <div class="control-section">
+        <div class="section-title">Mandible & Opacity</div>
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+          <button id="mandibleButton" class="mandible-btn">Mandible</button>
+          <div class="slider-container">
+            <span class="slider-label">Opacity</span>
+            <input type="range" id="opacitySlider" class="modern-slider" min="10" max="100" value="100">
+            <span id="opacityValue" style="font-size: 12px; color: #64748b; min-width: 35px;">100%</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<div id="loadingScreen" style="
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  background: rgba(255,255,255,0.8);
-  padding: 20px;
-  border-radius: 10px;
-  z-index: 100;">
-  <div style="font-size: 24px; margin-bottom: 10px;">Loading models, please wait...</div>
-  <div id="progressBarContainer" style="width: 300px; height: 20px; background: #eee; border-radius: 10px; overflow: hidden; margin: 0 auto;">
-    <div id="progressBarFill" style="height: 100%; width: 0%; background: linear-gradient(90deg, #4caf50, #8bc34a); transition: width 0.3s;"></div>
+<div id="loadingScreen">
+  <div class="loading-title">Loading 3D Models</div>
+  <div class="progress-container">
+    <div id="progressBarFill" class="progress-fill"></div>
   </div>
-  <div id="progressText" style="margin-top: 10px;">0 / 17 loaded</div>
+  <div id="progressText" class="progress-text">0 / 17 loaded</div>
 </div>
 
 <div id="vtk-container"></div>
@@ -262,9 +411,8 @@ document.getElementById('toggleViewMode').addEventListener('click', () => {
     isOrthographic = !isOrthographic;
     camera.setParallelProjection(isOrthographic);
     renderer.resetCameraClippingRange();
-    // renderWindow.render();
     requestRender();
-    document.getElementById('toggleViewMode').innerText = isOrthographic ? 'Switch to Perspective' : 'Switch to Orthographic';
+    document.getElementById('toggleViewMode').innerHTML = isOrthographic ? 'Switch to Perspective' : 'Switch to Orthographic';
 });
 
 // Model Files
@@ -288,7 +436,7 @@ const modelFiles = [
   "https://dl.dropboxusercontent.com/scl/fi/trfhf9b7pwbmrw6h5s3qz/Segment_17.vtp?rlkey=c0gpvagzgcx9xh9npq7atjyjw&st=jfnjkwgi&dl=0"
 ];
 
-// Colors
+// Simplified Colors - using a more cohesive palette
 const modelColors = [
   [128, 174, 128], [241, 214, 145], [177, 122, 101], [111, 184, 210],
   [216, 101, 79], [221, 130, 101], [144, 238, 144], [192, 104, 88],
@@ -305,8 +453,42 @@ const selectorTop = document.getElementById('teethSelectorTop');
 const selectorBottom = document.getElementById('teethSelectorBottom');
 const mandibleButton = document.getElementById('mandibleButton');
 const opacitySlider = document.getElementById('opacitySlider');
-const collapseBtn = document.getElementById('collapseBtn')
+const opacityValue = document.getElementById('opacityValue');
+const collapseBtn = document.getElementById('collapseBtn');
+const toggleAllBtn = document.getElementById('toggleAllBtn');
 let selectedActorIndex = null;
+let allVisible = true;
+
+// Update opacity display
+function updateOpacityDisplay() {
+    opacityValue.textContent = opacitySlider.value + '%';
+}
+
+// Toggle All button functionality
+toggleAllBtn.addEventListener('click', () => {
+  allVisible = !allVisible;
+  
+  modelActors.forEach(({actor}) => actor && actor.setVisibility(allVisible));
+  document.querySelectorAll('.button-tooth').forEach(b => {
+    if (allVisible) {
+      b.classList.add('active');
+    } else {
+      b.classList.remove('active');
+    }
+  });
+  
+  if (allVisible) {
+    mandibleButton.classList.add('active');
+    opacitySlider.disabled = false;
+    toggleAllBtn.innerHTML = 'Hide All';
+  } else {
+    mandibleButton.classList.remove('active');
+    opacitySlider.disabled = true;
+    toggleAllBtn.innerHTML = 'Show All';
+  }
+  
+  requestRender();
+});
 
 // Mandible Button
 mandibleButton.addEventListener('click', () => {
@@ -314,18 +496,14 @@ mandibleButton.addEventListener('click', () => {
   if (actor) {
     const visible = actor.getVisibility();
     actor.setVisibility(!visible);
-    // Check if only one actor visible
     const visibleActors = modelActors.filter(m => m.actor && m.actor.getVisibility());
     if (!visible){
-        // focusOnActor(actor, 50);
         renderer.resetCamera();
     }
-    // renderWindow.render();
-    mandibleButton.classList.toggle('active', actor.getVisibility());
-    requestRender();
     mandibleButton.classList.toggle('active', !visible);
     selectedActorIndex = 0;
     opacitySlider.disabled = !actor.getVisibility();
+    requestRender();
   }
 });
 
@@ -342,20 +520,15 @@ function createToothButton(label, index, parent) {
     if (actor) {
       const visible = actor.getVisibility();
       actor.setVisibility(!visible);
-      // Check if only one actor visible
-        const visibleActors = modelActors.filter(m => m.actor && m.actor.getVisibility());
-        if (visibleActors.length === 1) {
-            focusOnActor(visibleActors[0].actor, 50);
-        } else if (!visible){
-            // renderer.resetCamera();
-            focusOnActor(actor, 50);
-        }
-      // renderWindow.render();
-      button.classList.toggle('active', actor.getVisibility());
-      requestRender();
+      const visibleActors = modelActors.filter(m => m.actor && m.actor.getVisibility());
+      if (visibleActors.length === 1) {
+          focusOnActor(visibleActors[0].actor, 50);
+      } else if (!visible){
+          focusOnActor(actor, 50);
+      }
       button.classList.toggle('active', !visible);
       selectedActorIndex = null;
-      // opacitySlider.disabled = true;
+      requestRender();
     }
   });
 }
@@ -368,7 +541,7 @@ function createToothButton(label, index, parent) {
 ].forEach(([label,index]) => createToothButton(label,index,selectorBottom));
 
 // Load Models
-loadedModels = 0;
+let loadedModels = 0;
 Promise.all(modelFiles.map((file,index)=>{
   const reader = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
   const mapper = vtk.Rendering.Core.vtkMapper.newInstance();
@@ -385,7 +558,6 @@ Promise.all(modelFiles.map((file,index)=>{
     loadedModels++;
     document.getElementById('progressBarFill').style.width = `${(loadedModels)/modelFiles.length*100}%`;
     document.getElementById('progressText').innerText = `${loadedModels} / ${modelFiles.length} loaded`;
-    //renderWindow.render();
     requestRender();
   });
 })).then(()=>{
@@ -393,67 +565,40 @@ Promise.all(modelFiles.map((file,index)=>{
   document.querySelectorAll('.button-tooth').forEach(b=>b.classList.add('active'));
   mandibleButton.classList.add('active');
   renderer.resetCamera();
-  //renderWindow.render();
   requestRender();
   document.getElementById('loadingScreen').style.display = 'none';
 });
 
 // Opacity
-// opacitySlider.disabled = true;
 opacitySlider.addEventListener('input',()=>{
-    // Works with only Mandible model, thus index 0
     modelActors[0].actor.getProperty().setOpacity(parseInt(opacitySlider.value)/100);
-    //renderWindow.render();
+    updateOpacityDisplay();
     requestRender();
 });
 
-// Show/Hide All
-document.getElementById('showAllBtn').addEventListener('click',()=>{
-  modelActors.forEach(({actor})=>actor&&actor.setVisibility(true));
-  document.querySelectorAll('.button-tooth').forEach(b=>b.classList.add('active'));
-  //renderWindow.render();
-  mandibleButton.classList.add('active');
-  opacitySlider.disabled = false;
-  requestRender();
-});
-document.getElementById('hideAllBtn').addEventListener('click',()=>{
-  modelActors.forEach(({actor})=>actor&&actor.setVisibility(false));
-  document.querySelectorAll('.button-tooth').forEach(b=>b.classList.remove('active'));
-  //renderWindow.render();
-  mandibleButton.classList.add('active');
-  opacitySlider.disabled = true;
-  requestRender();
-});
+// Initialize opacity display
+updateOpacityDisplay();
 
-// Collpase Button
+// Collapse Button
 collapseBtn.addEventListener('click', () => {
-    const teethTop = document.getElementById('teethSelectorTop');
-    const teethBottom = document.getElementById('teethSelectorBottom');
-    const mandibleArea = document.getElementById('mandibleSelector');
-    const opacityArea = document.getElementById('opacityControl');
-  
-    const currentlyVisible = teethTop.style.display !== 'none';
-  
-    teethTop.style.display = currentlyVisible ? 'none' : 'grid';
-    teethBottom.style.display = currentlyVisible ? 'none' : 'grid';
-    mandibleArea.style.display = currentlyVisible ? 'none' : 'flex'; // flex, not grid
-    opacityArea.style.display = currentlyVisible ? 'none' : 'flex';   // flex, not grid
-  
-    collapseBtn.innerText = currentlyVisible ? 'Show Panel' : 'Hide Panel';
+    const teethControls = document.getElementById('teethControls');
+    const currentlyVisible = teethControls.style.display !== 'none';
+    
+    teethControls.style.display = currentlyVisible ? 'none' : 'block';
+    collapseBtn.innerHTML = currentlyVisible ? 'Show Panel' : 'Hide Panel';
 });
 
 // Helper function to center the camera pivot to individual model's bounding box
 function focusOnActor(actor, move_back) {
-    const bounds = actor.getBounds(); // [xmin, xmax, ymin, ymax, zmin, zmax]
-    // renderer.resetCamera(bounds);
+    const bounds = actor.getBounds();
     const center = [
         (bounds[0] + bounds[1]) / 2,
         (bounds[2] + bounds[3]) / 2,
         (bounds[4] + bounds[5]) / 2
     ];
     camera.setFocalPoint(...center);
-    camera.setViewUp(0, 0, 1); // Keep standard "up" direction
-    camera.setPosition(center[0], center[1] - move_back, center[2]); // Move back a bit
+    camera.setViewUp(0, 0, 1);
+    camera.setPosition(center[0], center[1] - move_back, center[2]);
     renderer.resetCameraClippingRange();
     renderWindow.render();
 }
@@ -470,6 +615,7 @@ dragHandle.addEventListener('mousedown', (e) => {
   isDragging = true;
   offsetX = e.clientX - panel.offsetLeft;
   offsetY = e.clientY - panel.offsetTop;
+  panel.style.transition = 'none';
 });
 
 document.addEventListener('mousemove', (e) => {
@@ -480,41 +626,36 @@ document.addEventListener('mousemove', (e) => {
 });
 
 document.addEventListener('mouseup', () => {
+  if (isDragging) {
+    panel.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+  }
   isDragging = false;
 });
 
-// 📱 Touch events
+// Touch events
 dragHandle.addEventListener('touchstart', (e) => {
     isDragging = true;
     const touch = e.touches[0];
     offsetX = touch.clientX - panel.offsetLeft;
     offsetY = touch.clientY - panel.offsetTop;
-  });
-  
-  document.addEventListener('touchmove', (e) => {
-    if (isDragging) {
-      const touch = e.touches[0];
-      panel.style.left = (touch.clientX - offsetX) + 'px';
-      panel.style.top = (touch.clientY - offsetY) + 'px';
-      e.preventDefault(); // prevent page scrolling while dragging
-    }
-  }, { passive: false });
-  
-  document.addEventListener('touchend', () => {
-    isDragging = false;
-  });
+    panel.style.transition = 'none';
+});
 
-// Update Opacity Slider Track
-function updateSliderTrack() {
-    const percent = (opacitySlider.value - opacitySlider.min) / (opacitySlider.max - opacitySlider.min) * 100;
-    opacitySlider.style.setProperty('--progress', `${percent}%`);
-}
+document.addEventListener('touchmove', (e) => {
+  if (isDragging) {
+    const touch = e.touches[0];
+    panel.style.left = (touch.clientX - offsetX) + 'px';
+    panel.style.top = (touch.clientY - offsetY) + 'px';
+    e.preventDefault();
+  }
+}, { passive: false });
 
-opacitySlider.addEventListener('input', updateSliderTrack);
-
-// Call once to initialize
-updateSliderTrack();
-
+document.addEventListener('touchend', () => {
+  if (isDragging) {
+    panel.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+  }
+  isDragging = false;
+});
 
 </script>
 </body>
