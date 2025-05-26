@@ -9,7 +9,6 @@ This project is a simple interactive 3D dental model viewer built with [VTK.js](
 - Explore the model interactively on desktop and mobile devices
 
 ---
-![Presentation_preview_23052025](https://github.com/user-attachments/assets/2703102e-b1a8-4458-9795-91f37f6c481d)
 
 🔗 Live Demo: [View on GitHub Pages](https://oonatmai.github.io/vtp-viewer/viewer.html)
 
