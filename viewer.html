@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>VTP Viewer</title>
+  <title>#0084 Segmentation Example for IADR 2025 Poster</title>
   <script src="https://unpkg.com/vtk.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -22,37 +22,116 @@
     #vtk-container {
       width: 100%;
       height: 100%;
+      transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
-    /* Modern floating control panel */
+    /* Sidebar styles */
     #model-controls {
-      position: absolute;
-      top: 20px;
-      left: 20px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 400px;
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(20px);
-      border-radius: 16px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 2px 0 20px rgba(0, 0, 0, 0.1);
+      border-right: 1px solid rgba(255, 255, 255, 0.2);
       z-index: 10;
-      min-width: 320px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow-y: auto;
     }
     
-    #dragHandle {
-      width: 100%;
+    #model-controls.collapsed {
+      transform: translateX(-400px);
+    }
+    
+    /* Toggle button for sidebar */
+    #sidebarToggle {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      width: 48px;
       height: 48px;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      cursor: move;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      z-index: 11;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    #sidebarToggle:hover {
+      background: rgba(255, 255, 255, 1);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    #sidebarToggle.sidebar-open {
+      left: 420px;
+    }
+    
+    /* Hamburger icon */
+    .hamburger {
+      width: 24px;
+      height: 20px;
+      position: relative;
+      transform: rotate(0deg);
+      transition: .5s ease-in-out;
+      cursor: pointer;
+    }
+    
+    .hamburger span {
+      display: block;
+      position: absolute;
+      height: 3px;
+      width: 100%;
+      background: #667eea;
+      border-radius: 3px;
+      opacity: 1;
+      left: 0;
+      transform: rotate(0deg);
+      transition: .25s ease-in-out;
+    }
+    
+    .hamburger span:nth-child(1) {
+      top: 0px;
+    }
+    
+    .hamburger span:nth-child(2) {
+      top: 8px;
+    }
+    
+    .hamburger span:nth-child(3) {
+      top: 16px;
+    }
+    
+    .hamburger.open span:nth-child(1) {
+      top: 8px;
+      transform: rotate(135deg);
+    }
+    
+    .hamburger.open span:nth-child(2) {
+      opacity: 0;
+      left: -60px;
+    }
+    
+    .hamburger.open span:nth-child(3) {
+      top: 8px;
+      transform: rotate(-135deg);
+    }
+    
+    /* Sidebar header */
+    .sidebar-header {
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
       color: white;
-      user-select: none;
-      border-top-left-radius: 16px;
-      border-top-right-radius: 16px;
-      font-weight: 500;
-      font-size: 14px;
+      font-weight: 600;
+      font-size: 18px;
       letter-spacing: 0.5px;
     }
     
@@ -60,7 +139,7 @@
       padding: 20px;
     }
     
-    /*  buttons */
+    /* Modern buttons */
     .modern-btn {
       background: linear-gradient(135deg, #667eea, #764ba2);
       border: none;
@@ -177,7 +256,7 @@
     
     .modern-slider {
       flex: 1;
-      height: 6px;
+      height: 10px;
       background: rgba(148, 163, 184, 0.2);
       border-radius: 3px;
       outline: none;
@@ -188,12 +267,12 @@
     
     .modern-slider::-webkit-slider-thumb {
       appearance: none;
-      width: 20px;
-      height: 20px;
+      width: 32px;
+      height: 32px;
       background: linear-gradient(135deg, #667eea, #764ba2);
       border-radius: 50%;
       cursor: pointer;
-      border: 3px solid white;
+      border: 4px solid white;
       box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
       transition: all 0.2s ease;
     }
@@ -204,14 +283,26 @@
     }
     
     .modern-slider::-moz-range-thumb {
-      width: 20px;
-      height: 20px;
+      width: 32px;
+      height: 32px;
       background: linear-gradient(135deg, #667eea, #764ba2);
       border-radius: 50%;
       cursor: pointer;
-      border: 3px solid white;
+      border: 4px solid white;
       box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
     }
+
+    /* Opacity Button */
+    .opacity-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        border: 2px solid #667eea;
+        background: white;
+        color: #667eea;
+        font-size: 20px;
+        font-weight: bold;
+      }
     
     /* Top floating button */
     #toggleViewMode {
@@ -314,10 +405,17 @@
     /* Responsive design */
     @media (max-width: 768px) {
       #model-controls {
-        left: 10px;
-        right: 10px;
-        top: 10px;
-        min-width: auto;
+        width: 100%;
+        max-width: 320px;
+      }
+      
+      #model-controls.collapsed {
+        transform: translateX(-100%);
+      }
+      
+      #sidebarToggle.sidebar-open {
+        left: calc(100% - 68px);
+        max-left: 252px;
       }
       
       #toggleViewMode {
@@ -338,12 +436,21 @@
 
 <button id="toggleViewMode">Switch to Orthographic</button>
 
+<!-- Sidebar toggle button -->
+<button id="sidebarToggle" class="sidebar-open">
+  <div class="hamburger open">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</button>
+
+<!-- Sidebar -->
 <div id="model-controls">
-  <div id="dragHandle">⋮⋮ Drag to Move Panel</div>
+  <div class="sidebar-header">Model Viewer Controls</div>
   <div class="panel-content">
     <div class="control-section">
       <div class="button-group">
-        <button id="collapseBtn" class="modern-btn">Toggle Panel</button>
         <button id="toggleAllBtn" class="modern-btn">Hide All</button>
       </div>
     </div>
@@ -365,7 +472,9 @@
           <button id="mandibleButton" class="mandible-btn">Mandible</button>
           <div class="slider-container">
             <span class="slider-label">Opacity</span>
+            <button class="opacity-btn" onclick="adjustOpacity(-10)">−</button>
             <input type="range" id="opacitySlider" class="modern-slider" min="10" max="100" value="100">
+            <button class="opacity-btn" onclick="adjustOpacity(10)">+</button>
             <span id="opacityValue" style="font-size: 12px; color: #64748b; min-width: 35px;">100%</span>
           </div>
         </div>
@@ -454,10 +563,29 @@ const selectorBottom = document.getElementById('teethSelectorBottom');
 const mandibleButton = document.getElementById('mandibleButton');
 const opacitySlider = document.getElementById('opacitySlider');
 const opacityValue = document.getElementById('opacityValue');
-const collapseBtn = document.getElementById('collapseBtn');
 const toggleAllBtn = document.getElementById('toggleAllBtn');
 let selectedActorIndex = null;
 let allVisible = true;
+
+// Sidebar toggle functionality
+const sidebarToggle = document.getElementById('sidebarToggle');
+const sidebar = document.getElementById('model-controls');
+const hamburger = sidebarToggle.querySelector('.hamburger');
+let sidebarOpen = true;
+
+sidebarToggle.addEventListener('click', () => {
+  sidebarOpen = !sidebarOpen;
+  
+  if (sidebarOpen) {
+    sidebar.classList.remove('collapsed');
+    sidebarToggle.classList.add('sidebar-open');
+    hamburger.classList.add('open');
+  } else {
+    sidebar.classList.add('collapsed');
+    sidebarToggle.classList.remove('sidebar-open');
+    hamburger.classList.remove('open');
+  }
+});
 
 // Update opacity display
 function updateOpacityDisplay() {
@@ -569,24 +697,42 @@ Promise.all(modelFiles.map((file,index)=>{
   document.getElementById('loadingScreen').style.display = 'none';
 });
 
+function setOpacity(value){
+    // Ensure value is within valid range
+    value = Math.max(10, Math.min(100, value));
+
+    // Update the slider
+    opacitySlider.value = value;
+    updateOpacityDisplay();
+
+    // Apply to the mandible actor (index 0)
+    if (modelActors[0].actor) {
+        modelActors[0].actor.getProperty().setOpacity(value / 100);
+        requestRender();
+    }
+};
+
+// Adjust opacity by a certain amount (for +/- buttons)
+function adjustOpacity(delta) {
+    const currentValue = parseInt(opacitySlider.value);
+    const newValue = currentValue + delta;
+    setOpacity(newValue);
+}
+
 // Opacity
 opacitySlider.addEventListener('input',()=>{
+    /*
     modelActors[0].actor.getProperty().setOpacity(parseInt(opacitySlider.value)/100);
     updateOpacityDisplay();
     requestRender();
+    */
+    const value = parseInt(opacitySlider.value);
+    setOpacity(value);
 });
 
 // Initialize opacity display
 updateOpacityDisplay();
 
-// Collapse Button
-collapseBtn.addEventListener('click', () => {
-    const teethControls = document.getElementById('teethControls');
-    const currentlyVisible = teethControls.style.display !== 'none';
-    
-    teethControls.style.display = currentlyVisible ? 'none' : 'block';
-    collapseBtn.innerHTML = currentlyVisible ? 'Show Panel' : 'Hide Panel';
-});
 
 // Helper function to center the camera pivot to individual model's bounding box
 function focusOnActor(actor, move_back) {
@@ -602,60 +748,6 @@ function focusOnActor(actor, move_back) {
     renderer.resetCameraClippingRange();
     renderWindow.render();
 }
-
-// Make model-controls draggable
-const panel = document.getElementById('model-controls');
-const dragHandle = document.getElementById('dragHandle');
-
-let isDragging = false;
-let offsetX = 0;
-let offsetY = 0;
-
-dragHandle.addEventListener('mousedown', (e) => {
-  isDragging = true;
-  offsetX = e.clientX - panel.offsetLeft;
-  offsetY = e.clientY - panel.offsetTop;
-  panel.style.transition = 'none';
-});
-
-document.addEventListener('mousemove', (e) => {
-  if (isDragging) {
-    panel.style.left = (e.clientX - offsetX) + 'px';
-    panel.style.top = (e.clientY - offsetY) + 'px';
-  }
-});
-
-document.addEventListener('mouseup', () => {
-  if (isDragging) {
-    panel.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-  }
-  isDragging = false;
-});
-
-// Touch events
-dragHandle.addEventListener('touchstart', (e) => {
-    isDragging = true;
-    const touch = e.touches[0];
-    offsetX = touch.clientX - panel.offsetLeft;
-    offsetY = touch.clientY - panel.offsetTop;
-    panel.style.transition = 'none';
-});
-
-document.addEventListener('touchmove', (e) => {
-  if (isDragging) {
-    const touch = e.touches[0];
-    panel.style.left = (touch.clientX - offsetX) + 'px';
-    panel.style.top = (touch.clientY - offsetY) + 'px';
-    e.preventDefault();
-  }
-}, { passive: false });
-
-document.addEventListener('touchend', () => {
-  if (isDragging) {
-    panel.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-  }
-  isDragging = false;
-});
 
 </script>
 </body>
